@@ -1,0 +1,51 @@
+name: Build Armor Integrity Prototype
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "ArmorIntegrity/**"
+      - ".github/workflows/build-armor-integrity.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore packages
+        run: dotnet restore ArmorIntegrity/Source/ArmorIntegrity/ArmorIntegrity.csproj
+
+      - name: Build DLL
+        run: dotnet build ArmorIntegrity/Source/ArmorIntegrity/ArmorIntegrity.csproj -c Release --no-restore
+
+      - name: Verify DLL
+        run: test -f ArmorIntegrity/1.6/Assemblies/ArmorIntegrity.dll
+
+      - name: Prepare ready-to-install mod
+        run: |
+          rm -rf artifact/ArmorIntegrity
+          mkdir -p artifact/ArmorIntegrity/About
+          mkdir -p artifact/ArmorIntegrity/1.6/Assemblies
+          mkdir -p artifact/ArmorIntegrity/1.6/Defs/HediffDefs
+          mkdir -p artifact/ArmorIntegrity/1.6/Patches
+          cp ArmorIntegrity/About/About.xml artifact/ArmorIntegrity/About/About.xml
+          cp ArmorIntegrity/1.6/Assemblies/ArmorIntegrity.dll artifact/ArmorIntegrity/1.6/Assemblies/ArmorIntegrity.dll
+          cp ArmorIntegrity/1.6/Defs/HediffDefs/ArmorIntegrity_Hediffs.xml artifact/ArmorIntegrity/1.6/Defs/HediffDefs/ArmorIntegrity_Hediffs.xml
+          cp ArmorIntegrity/1.6/Patches/ArmorIntegrity_Stats.xml artifact/ArmorIntegrity/1.6/Patches/ArmorIntegrity_Stats.xml
+          cp ArmorIntegrity/README_DE.md artifact/ArmorIntegrity/README_DE.md
+
+      - name: Upload ready-to-install mod
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArmorIntegrity_RimWorld_1.6_Prototype
+          path: artifact/ArmorIntegrity
+          if-no-files-found: error
