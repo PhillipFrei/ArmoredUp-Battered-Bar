@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <HediffDef>
+    <defName>AI_BatteredArmor</defName>
+    <label>battered armor</label>
+    <description>Repeated impacts have temporarily exhausted this pawn's intrinsic armor. The effect recovers over time.</description>
+    <hediffClass>HediffWithComps</hediffClass>
+    <maxSeverity>1.0</maxSeverity>
+    <makesAlert>false</makesAlert>
+    <displayWound>true</displayWound>
+    <alwaysShowSeverity>true</alwaysShowSeverity>
+    <comps>
+      <li Class="ArmorIntegrity.HediffCompProperties_ArmorRecovery" />
+    </comps>
+  </HediffDef>
+</Defs>
