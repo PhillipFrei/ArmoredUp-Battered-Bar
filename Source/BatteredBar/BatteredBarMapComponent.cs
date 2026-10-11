@@ -31,7 +31,7 @@ namespace ArmoredUpBatteredBar
             if (Find.CurrentMap != map || map?.mapPawns == null)
                 return;
 
-            List<Pawn> pawns = map.mapPawns.AllPawnsSpawned;
+            IReadOnlyList<Pawn> pawns = map.mapPawns.AllPawnsSpawned;
             if (pawns == null || pawns.Count == 0)
                 return;
 
