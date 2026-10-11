@@ -1,0 +1,42 @@
+name: Build RimWorld Mod
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore packages
+        run: dotnet restore Source/BatteredBar/BatteredBar.csproj
+
+      - name: Build DLL
+        run: dotnet build Source/BatteredBar/BatteredBar.csproj -c Release --no-restore
+
+      - name: Verify DLL
+        run: test -f 1.6/Assemblies/ArmoredUpBatteredBar.dll
+
+      - name: Prepare ready-to-install mod
+        run: |
+          mkdir -p artifact/ArmoredUp_BatteredBar/About
+          mkdir -p artifact/ArmoredUp_BatteredBar/1.6/Assemblies
+          cp About/About.xml artifact/ArmoredUp_BatteredBar/About/About.xml
+          cp 1.6/Assemblies/ArmoredUpBatteredBar.dll artifact/ArmoredUp_BatteredBar/1.6/Assemblies/ArmoredUpBatteredBar.dll
+
+      - name: Upload ready-to-install mod
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArmoredUp_BatteredBar_RimWorld_1.6
+          path: artifact/ArmoredUp_BatteredBar
+          if-no-files-found: error
