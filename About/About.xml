@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+  <name>Armored Up - Battered Bar</name>
+  <author>Local compatibility addon</author>
+  <packageId>local.armoredup.batteredbar</packageId>
+  <supportedVersions>
+    <li>1.6</li>
+  </supportedVersions>
+  <loadAfter>
+    <li>tyjm.ArmoredUp</li>
+  </loadAfter>
+  <description>Shows Armored Up's remaining Battered armor effectiveness as a compact, text-free bar above every spawned pawn affected by BatteredArmor.</description>
+</ModMetaData>
