@@ -1,5 +1,4 @@
 using RimWorld;
-using UnityEngine;
 using Verse;
 
 namespace ArmorIntegrity
@@ -13,21 +12,7 @@ namespace ArmorIntegrity
 
             Apparel apparel = thing as Apparel;
             if (apparel != null)
-            {
-                ArmorWearTracker tracker = ArmorWearTracker.Current;
-
-                if (apparel.def.useHitPoints && apparel.MaxHitPoints > 0)
-                {
-                    float pending = tracker != null ? tracker.GetFractionalHpDamage(apparel) : 0f;
-                    float effectiveHp = Mathf.Max(0f, apparel.HitPoints - pending);
-                    return Mathf.Clamp01(effectiveHp / apparel.MaxHitPoints);
-                }
-
-                if (tracker != null)
-                    return 1f - tracker.GetVirtualWear(apparel);
-
-                return 1f;
-            }
+                return ArmorIntegrityUtility.GetApparelConditionFactor(apparel);
 
             Pawn pawn = thing as Pawn;
             if (pawn != null)
