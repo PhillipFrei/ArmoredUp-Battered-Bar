@@ -7,6 +7,7 @@ namespace ArmorIntegrity
     public static class ArmorIntegrityDefOf
     {
         public static HediffDef AI_BatteredArmor;
+        public static HediffDef AI_IntrinsicArmorWear;
 
         static ArmorIntegrityDefOf()
         {
