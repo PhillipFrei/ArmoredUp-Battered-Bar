@@ -19,21 +19,23 @@ namespace ArmorIntegrity
 
                 Pawn wearer = apparel.Wearer;
                 if (wearer != null)
-                    return 1f - ArmorIntegrityUtility.GetBatteredSeverity(wearer);
+                    return 1f - ArmorIntegrityUtility.GetIntrinsicBatteredSeverity(wearer);
 
                 return 1f;
             }
 
             Pawn pawn = thing as Pawn;
             if (pawn != null)
-                return 1f - ArmorIntegrityUtility.GetBatteredSeverity(pawn);
+                return 1f - ArmorIntegrityUtility.GetIntrinsicBatteredSeverity(pawn);
 
             return 1f;
         }
 
         public override void TransformValue(StatRequest req, ref float val)
         {
-            if (!req.HasThing)
+            // V2 intentionally treats armor degradation as Sharp-only.
+            // Blunt/Heat values are left untouched for now and are reserved for later trauma work.
+            if (parentStat != StatDefOf.ArmorRating_Sharp || !req.HasThing)
                 return;
 
             val *= GetConditionFactor(req.Thing);
@@ -41,7 +43,7 @@ namespace ArmorIntegrity
 
         public override string ExplanationPart(StatRequest req)
         {
-            if (!req.HasThing)
+            if (parentStat != StatDefOf.ArmorRating_Sharp || !req.HasThing)
                 return null;
 
             float factor = GetConditionFactor(req.Thing);
@@ -50,7 +52,7 @@ namespace ArmorIntegrity
 
             Apparel apparel = req.Thing as Apparel;
             if (apparel != null && apparel.def.useHitPoints)
-                return "Armor condition: x" + (factor * 100f).ToString("0") + "%";
+                return "Armor integrity: x" + (factor * 100f).ToString("0") + "%";
 
             return "Battered armor: x" + (factor * 100f).ToString("0") + "%";
         }
