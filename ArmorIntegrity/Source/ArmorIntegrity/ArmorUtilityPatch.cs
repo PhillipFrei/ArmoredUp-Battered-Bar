@@ -13,7 +13,7 @@ namespace ArmorIntegrity
         {
             Harmony harmony = new Harmony("phillipfrei.armorintegrity");
             harmony.PatchAll();
-            Log.Message("[Armor Integrity] Loaded prototype armor system v2.");
+            Log.Message("[Armor Integrity] Loaded prototype armor system v2.1.");
         }
     }
 
@@ -51,8 +51,7 @@ namespace ArmorIntegrity
             StatDef armorStat = ArmorIntegrityUtility.ResolveArmorStat(damageDef);
             float resolvedAp = ArmorIntegrityUtility.ResolveArmorPenetration(amount, armorPenetration);
 
-            // V2 deliberately has no damage/AP forwarding.
-            // Exactly one active layer handles a hit; the next layer is only considered by a later hit.
+            // One hit, one layer. No damage/AP forwarding in this prototype.
             if (pawn.apparel != null && part != null)
             {
                 List<Apparel> worn = new List<Apparel>(pawn.apparel.WornApparel);
@@ -70,8 +69,19 @@ namespace ArmorIntegrity
                     bool metal = ArmorIntegrityUtility.IsMetalArmor(apparel);
                     float wear = ArmorIntegrityUtility.CalculateWearPercentage(amount, resolvedAp, currentArmor);
 
-                    ArmorIntegrityUtility.DamageApparel(apparel, wear);
-                    ArmorIntegrityUtility.DebugLayer(pawn, layerLabel, amount, resolvedAp, currentArmor, wear, 0f, 0f);
+                    float exactHpDamage;
+                    int appliedHpDamage;
+                    ArmorIntegrityUtility.DamageApparel(apparel, wear, out exactHpDamage, out appliedHpDamage);
+                    ArmorIntegrityUtility.DebugLayer(
+                        pawn,
+                        apparel.Destroyed ? null : apparel,
+                        layerLabel,
+                        amount,
+                        resolvedAp,
+                        currentArmor,
+                        wear,
+                        exactHpDamage,
+                        appliedHpDamage);
 
                     diminishedByMetalArmor = metal;
                     deflectedByMetalArmor = metal;
@@ -80,13 +90,22 @@ namespace ArmorIntegrity
                 }
             }
 
-            // No wearable layer was available for this body part: intrinsic armor is the final layer.
+            // Intrinsic armor (genes, implants, race stats, etc.) is the final layer.
             float currentIntrinsicArmor = Mathf.Max(0f, pawn.GetStatValue(armorStat));
             if (currentIntrinsicArmor > Epsilon)
             {
                 float wear = ArmorIntegrityUtility.CalculateWearPercentage(amount, resolvedAp, currentIntrinsicArmor);
                 ArmorIntegrityUtility.AddIntrinsicBattered(pawn, wear);
-                ArmorIntegrityUtility.DebugLayer(pawn, "intrinsic armor", amount, resolvedAp, currentIntrinsicArmor, wear, 0f, 0f);
+                ArmorIntegrityUtility.DebugLayer(
+                    pawn,
+                    null,
+                    "intrinsic armor",
+                    amount,
+                    resolvedAp,
+                    currentIntrinsicArmor,
+                    wear,
+                    0f,
+                    0);
 
                 bool metal = pawn.RaceProps != null && pawn.RaceProps.IsMechanoid;
                 diminishedByMetalArmor = metal;
@@ -95,10 +114,8 @@ namespace ArmorIntegrity
                 return false;
             }
 
-            // All armor layers are gone/exhausted. Only now does the original hit reach the pawn.
-            if (ArmorIntegrityMod.Settings != null && ArmorIntegrityMod.Settings.debugCombatLogging)
-                Log.Message(string.Format("[Armor Integrity] {0} | no active armor layer | full body damage {1:0.###}", pawn.LabelShortCap, amount));
-
+            // All armor is exhausted: this later hit reaches the pawn.
+            ArmorIntegrityUtility.TraceNoArmor(pawn, amount, resolvedAp);
             __result = amount;
             return false;
         }
