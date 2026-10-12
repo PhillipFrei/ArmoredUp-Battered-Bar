@@ -1,10 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Patch>
   <!-- V2.1: degradation intentionally affects Sharp only. -->
-  <Operation Class="PatchOperationAdd">
+  <Operation Class="PatchOperationConditional">
     <xpath>Defs/StatDef[defName="ArmorRating_Sharp"]/parts</xpath>
-    <value>
-      <li Class="ArmorIntegrity.StatPart_ArmorCondition" />
-    </value>
+    <match Class="PatchOperationAdd">
+      <xpath>Defs/StatDef[defName="ArmorRating_Sharp"]/parts</xpath>
+      <value>
+        <li Class="ArmorIntegrity.StatPart_ArmorCondition" />
+      </value>
+    </match>
+    <nomatch Class="PatchOperationAdd">
+      <xpath>Defs/StatDef[defName="ArmorRating_Sharp"]</xpath>
+      <value>
+        <parts>
+          <li Class="ArmorIntegrity.StatPart_ArmorCondition" />
+        </parts>
+      </value>
+    </nomatch>
   </Operation>
 </Patch>
