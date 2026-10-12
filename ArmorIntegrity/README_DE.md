@@ -1,74 +1,60 @@
-# Armor Integrity – Prototyp v2
+# Armor Integrity – Prototyp v2.1
 
-V2 vereinfacht das System bewusst auf echte Schicht-für-Schicht-Abnutzung.
+## Kernregel
 
-## Kernformel
-
-Pro Treffer auf die aktuell äußerste aktive Schutzschicht:
+Ein Treffer belastet genau **eine** Rüstungsschicht: die äußerste passende aktive Schicht.
 
 `Verschleiß in Prozentpunkten = Damage × AP / aktuelle Sharp-AR × DegradationFactor`
 
 Standard: `DegradationFactor = 0.10`.
 
-## Armor-Typ
+Es gibt keine Weitergabe von Rest-Damage oder Rest-AP. Wird eine Schicht durch einen Treffer zerstört, trifft erst der nächste Treffer die darunterliegende Schicht.
 
-V2 prüft jeden rüstungsrelevanten Treffer absichtlich gegen **Sharp/Schnitt-AR**.
+## Sharp als einziger Kernwert
 
-- Sharp ist die einzige AR, die für die Kernberechnung benutzt und durch Zustand/Battered reduziert wird.
-- Blunt und Heat werden aktuell nicht als parallele Degradationsspuren benutzt.
-- Blunt ist für einen späteren Trauma-Mechanismus reserviert.
+Alle rüstungsrelevanten Treffer werden gegen **Sharp/Schnitt-AR** geprüft. Nur Sharp wird durch den Rüstungszustand reduziert. Blunt/Heat bleiben für spätere Mechaniken, besonders Trauma, unangetastet.
 
-## Keine Weitergabe mehr
+## Präziser Apparel-Verschleiß
 
-Ein Treffer wird immer vollständig von genau **einer** aktiven Rüstungsschicht behandelt.
+Apparel mit normalen HP verliert weiterhin echte HP. V2.1 speichert aber Bruchteile eines HP zwischen Treffern.
 
-- Äußerstes passendes Apparel nimmt Verschleiß.
-- Der Treffer endet dort.
-- Auch bei AP > AR gibt es keinen Rest-Damage und keine Rest-AP zur nächsten Schicht.
-- Wenn das Apparel durch diesen Treffer zerstört wird, trifft erst der **nächste** Treffer die darunterliegende Schicht.
-- Erst wenn keine Apparel-Schicht mehr schützt, wird intrinsische Rüstung belastet.
-- Erst wenn auch intrinsische Rüstung auf 100% Battered / 0 AR steht, erreicht ein späterer Treffer den Pawn.
+Beispiel:
 
-AP bleibt wichtig, weil hohe AP die Verschleißformel stark beschleunigt.
+- Treffer 1 berechnet 0,35 HP Verschleiß
+- Treffer 2 berechnet 0,35 HP
+- Treffer 3 berechnet 0,35 HP
+- zusammen 1,05 HP -> 1 sichtbarer HP wird abgezogen, 0,05 bleibt gespeichert
 
-## Apparel
+Dadurch geht kein kleiner Treffer mehr durch Rundung verloren. Die effektive Sharp-AR und der Balken berücksichtigen auch den gespeicherten Bruchteil sofort.
 
-Apparel verliert echte Hitpoints direkt:
+Apparel ohne normale HP erhält einen eigenen virtuellen Integritätswert. Als physische äußere Schicht wird es bei vollständiger Erschöpfung zerstört.
 
-- 100% HP = 100% Sharp-AR
-- 70% HP = 70% Sharp-AR
-- 0 HP = zerstört
+## Nur ein Balken
 
-Der Verschleiß wird direkt auf die HP geschrieben und nicht mehr als Deterioration-DamageEvent erzeugt.
+Der Balken zeigt immer nur die äußerste bereits beschädigte Armor-Schicht. Nach deren Zerstörung kann derselbe Balken die nächste beschädigte Schicht anzeigen. Intrinsische Rüstung wird erst angezeigt, wenn keine beschädigte Apparel-Schicht davor angezeigt wird.
 
-## Gene, Implantate und natürliche Rüstung
+## Gene, Implantate, natürliche Armor
 
-Intrinsische Rüstung verwendet einen eigenen regenerierenden Battered-Zustand:
+Intrinsische Armor benutzt regenerierendes Battered:
 
-- 30% Battered = 30% Sharp-AR verloren
+- 30% Battered = 30% weniger Sharp-AR
 - 100% Battered = 0 Sharp-AR
-- Implantat/Gen wird nicht zerstört
+- Gen/Implantat bleibt erhalten
 - Standardregeneration: 50 Prozentpunkte pro RimWorld-Tag
 
-## Ein Balken / ein sichtbarer Battered-Hediff
+## Alte Armored-Up-Saves
 
-Es wird nur **eine** sichtbare Battered-Anzeige pro Pawn verwendet.
+V2.1 enthält wieder einen kompatiblen `BatteredArmor`-DefName, damit alte Saves nach dem Entfernen von Armored Up ihre gespeicherten Hediffs nicht als fehlende Defs laden müssen.
 
-- Wenn ein beschädigtes Apparel die äußerste sichtbare beschädigte Schicht ist, zeigt Balken/Hediff dessen verlorene HP in Prozent.
-- Wenn keine beschädigte Apparel-Schicht angezeigt wird, zeigt er den intrinsischen Battered-Zustand.
-- Innere beschädigte Zustände werden nicht gleichzeitig als weitere Balken dargestellt.
+## Diagnose
 
-## AP-Fallback
-
-Wenn ein Treffer keine brauchbare AP liefert:
-
-`AP = Damage × 0.015`
+Die ersten 80 von Armor Integrity verarbeiteten Treffer schreiben automatisch Zeilen mit `[Armor Integrity TRACE]` ins Player.log. Damit sieht man Layer, Damage, AP, Sharp-AR, berechneten Verschleiß und tatsächlichen HP-Abzug.
 
 ## Noch nicht enthalten
 
 - Blunt Trauma
-- zufälliger Leak-through durch intakte Rüstung
-- Armored-Up Layer-Bonus
-- Armored-Up globale Damage-/AP-Multiplikatoren
-- Minimum-Durability-Damage
+- zufälliger Leak-through
+- Damage/AP-Weitergabe zwischen Layern
+- globale Armored-Up Damage-/AP-Multiplikatoren
+- Layer-Bonus
 - 95%-Max-Block-Cap
