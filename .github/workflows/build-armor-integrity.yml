@@ -46,6 +46,6 @@ jobs:
       - name: Upload ready-to-install mod
         uses: actions/upload-artifact@v4
         with:
-          name: ArmorIntegrity_RimWorld_1.6_Prototype
+          name: ArmorIntegrity_RimWorld_1.6_Prototype_v2
           path: artifact/ArmorIntegrity
           if-no-files-found: error
