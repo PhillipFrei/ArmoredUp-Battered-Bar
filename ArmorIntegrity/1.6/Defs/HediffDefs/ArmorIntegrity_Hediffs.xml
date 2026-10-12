@@ -29,4 +29,19 @@
       <li Class="ArmorIntegrity.HediffCompProperties_ArmorRecovery" />
     </comps>
   </HediffDef>
+
+  <!-- Compatibility def for saves made with Armored Up. -->
+  <HediffDef>
+    <defName>BatteredArmor</defName>
+    <label>battered armor</label>
+    <description>Legacy Armored Up battered armor state retained for save compatibility.</description>
+    <hediffClass>HediffWithComps</hediffClass>
+    <maxSeverity>1.0</maxSeverity>
+    <makesAlert>false</makesAlert>
+    <displayWound>false</displayWound>
+    <alwaysShowSeverity>false</alwaysShowSeverity>
+    <comps>
+      <li Class="ArmorIntegrity.HediffCompProperties_ArmorRecovery" />
+    </comps>
+  </HediffDef>
 </Defs>
