@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ModMetaData>
-  <name>Armor Integrity (Prototype v2.1)</name>
+  <name>Armor Integrity (Prototype v2.2)</name>
   <author>PhillipFrei</author>
   <packageId>phillipfrei.armorintegrity</packageId>
   <supportedVersions>
@@ -21,5 +21,5 @@
     <li>HIMPDahak.ArmoredUp</li>
     <li>wu0yin.ArmoredUp</li>
   </incompatibleWith>
-  <description>Prototype v2.1. One hit wears exactly one outermost armor layer. All core armor checks use Sharp. Apparel wear accumulates precisely even below one hit point, only one Battered bar is shown, and legacy Armored Up BatteredArmor saves are recognized.</description>
+  <description>Prototype v2.2. One hit wears exactly one outermost armor layer. All core armor checks use Sharp. The single Battered bar now follows the exact armor layer that actually absorbed the most recent armor hit instead of trying to infer a layer from all worn apparel.</description>
 </ModMetaData>
