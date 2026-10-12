@@ -37,6 +37,10 @@ namespace ArmorIntegrity
             if (severityDelta <= 0f)
                 return;
 
+            ArmorWearTracker tracker = ArmorWearTracker.Instance;
+            if (tracker != null)
+                tracker.SetDisplayedIntrinsic(pawn);
+
             Hediff hediff = pawn.health.hediffSet.GetFirstHediffOfDef(ArmorIntegrityDefOf.AI_IntrinsicArmorWear);
             if (hediff == null)
             {
@@ -103,29 +107,25 @@ namespace ArmorIntegrity
             if (pawn == null)
                 return false;
 
-            // One bar only: the outermost damaged armor item wins.
-            if (pawn.apparel != null)
+            ArmorWearTracker tracker = ArmorWearTracker.Instance;
+            if (tracker == null)
+                return false;
+
+            Apparel displayedApparel;
+            bool intrinsic;
+            if (!tracker.TryGetDisplayedLayer(pawn, out displayedApparel, out intrinsic))
+                return false;
+
+            if (intrinsic)
             {
-                List<Apparel> worn = pawn.apparel.WornApparel;
-                for (int i = worn.Count - 1; i >= 0; i--)
-                {
-                    Apparel apparel = worn[i];
-                    if (apparel == null || apparel.Destroyed || apparel.def.apparel == null)
-                        continue;
-
-                    if (!IsArmorApparel(apparel))
-                        continue;
-
-                    float battered = GetApparelBatteredSeverity(apparel);
-                    if (battered <= Epsilon)
-                        continue;
-
-                    severity = Mathf.Clamp01(battered);
-                    return true;
-                }
+                severity = GetIntrinsicBatteredSeverity(pawn);
+                return severity > Epsilon;
             }
 
-            severity = GetIntrinsicBatteredSeverity(pawn);
+            if (displayedApparel == null || displayedApparel.Destroyed)
+                return false;
+
+            severity = Mathf.Clamp01(GetApparelBatteredSeverity(displayedApparel));
             return severity > Epsilon;
         }
 
@@ -180,6 +180,9 @@ namespace ArmorIntegrity
 
             Pawn wearer = apparel.Wearer;
             ArmorWearTracker tracker = ArmorWearTracker.Instance;
+
+            if (tracker != null && wearer != null)
+                tracker.SetDisplayedApparel(wearer, apparel);
 
             if (apparel.def.useHitPoints && apparel.MaxHitPoints > 0)
             {
