@@ -1,4 +1,4 @@
-# Armor Integrity – Prototyp v2.1
+# Armor Integrity – Prototyp v2.2
 
 ## Kernregel
 
@@ -12,49 +12,38 @@ Es gibt keine Weitergabe von Rest-Damage oder Rest-AP. Wird eine Schicht durch e
 
 ## Sharp als einziger Kernwert
 
-Alle rüstungsrelevanten Treffer werden gegen **Sharp/Schnitt-AR** geprüft. Nur Sharp wird durch den Rüstungszustand reduziert. Blunt/Heat bleiben für spätere Mechaniken, besonders Trauma, unangetastet.
+Alle rüstungsrelevanten Treffer werden gegen **Sharp/Schnitt-AR** geprüft. Nur Sharp wird durch den Rüstungszustand reduziert. Blunt/Heat bleiben für spätere Mechaniken unangetastet.
 
 ## Präziser Apparel-Verschleiß
 
-Apparel mit normalen HP verliert weiterhin echte HP. V2.1 speichert aber Bruchteile eines HP zwischen Treffern.
+Apparel mit normalen HP verliert echte HP. Bruchteile eines HP werden zwischen Treffern gespeichert und gehen nicht durch Rundung verloren.
 
-Beispiel:
+## Ein Balken – exakt die getroffene Schicht
 
-- Treffer 1 berechnet 0,35 HP Verschleiß
-- Treffer 2 berechnet 0,35 HP
-- Treffer 3 berechnet 0,35 HP
-- zusammen 1,05 HP -> 1 sichtbarer HP wird abgezogen, 0,05 bleibt gespeichert
+V2.2 ändert die Anzeige grundlegend:
 
-Dadurch geht kein kleiner Treffer mehr durch Rundung verloren. Die effektive Sharp-AR und der Balken berücksichtigen auch den gespeicherten Bruchteil sofort.
+- Sobald eine Rüstungsschicht einen Treffer abfängt, merkt sich der Mod genau dieses Apparel.
+- Der eine Balken zeigt den verbleibenden Zustand genau dieser Schicht.
+- Weitere Treffer auf dieselbe Schicht reduzieren denselben Balken.
+- Wird die Schicht zerstört, verschwindet ihr Balken.
+- Der nächste Treffer auf die darunterliegende Schicht lässt denselben einzelnen Balken für diese neue Schicht erscheinen.
+- Trifft der Kampf schließlich intrinsische Rüstung aus Genen/Implantaten, zeigt derselbe Balken den intrinsischen Battered-Zustand.
 
-Apparel ohne normale HP erhält einen eigenen virtuellen Integritätswert. Als physische äußere Schicht wird es bei vollständiger Erschöpfung zerstört.
+Der Balken versucht nicht mehr selbst, aus allen getragenen Kleidungsstücken eine Schicht zu erraten.
 
-## Nur ein Balken
+## Intrinsische Rüstung
 
-Der Balken zeigt immer nur die äußerste bereits beschädigte Armor-Schicht. Nach deren Zerstörung kann derselbe Balken die nächste beschädigte Schicht anzeigen. Intrinsische Rüstung wird erst angezeigt, wenn keine beschädigte Apparel-Schicht davor angezeigt wird.
-
-## Gene, Implantate, natürliche Armor
-
-Intrinsische Armor benutzt regenerierendes Battered:
+Gene, Implantate, Rassenarmor und andere Pawn-Armor verwenden regenerierendes Battered:
 
 - 30% Battered = 30% weniger Sharp-AR
 - 100% Battered = 0 Sharp-AR
-- Gen/Implantat bleibt erhalten
+- Gen/Implantat wird nicht zerstört
 - Standardregeneration: 50 Prozentpunkte pro RimWorld-Tag
 
 ## Alte Armored-Up-Saves
 
-V2.1 enthält wieder einen kompatiblen `BatteredArmor`-DefName, damit alte Saves nach dem Entfernen von Armored Up ihre gespeicherten Hediffs nicht als fehlende Defs laden müssen.
+Der alte `BatteredArmor`-DefName bleibt als Save-Kompatibilität enthalten.
 
 ## Diagnose
 
-Die ersten 80 von Armor Integrity verarbeiteten Treffer schreiben automatisch Zeilen mit `[Armor Integrity TRACE]` ins Player.log. Damit sieht man Layer, Damage, AP, Sharp-AR, berechneten Verschleiß und tatsächlichen HP-Abzug.
-
-## Noch nicht enthalten
-
-- Blunt Trauma
-- zufälliger Leak-through
-- Damage/AP-Weitergabe zwischen Layern
-- globale Armored-Up Damage-/AP-Multiplikatoren
-- Layer-Bonus
-- 95%-Max-Block-Cap
+Die ersten 80 verarbeiteten Rüstungstreffer schreiben automatisch `[Armor Integrity TRACE]` ins Player.log.
