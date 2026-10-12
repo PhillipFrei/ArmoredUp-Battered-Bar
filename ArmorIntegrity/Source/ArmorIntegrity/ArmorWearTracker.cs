@@ -28,11 +28,11 @@ namespace ArmorIntegrity
             }
         }
 
-        public static ArmorWearTracker Current
+        public static ArmorWearTracker Instance
         {
             get
             {
-                return Current.Game == null ? null : Current.Game.GetComponent<ArmorWearTracker>();
+                return Verse.Current.Game == null ? null : Verse.Current.Game.GetComponent<ArmorWearTracker>();
             }
         }
 
