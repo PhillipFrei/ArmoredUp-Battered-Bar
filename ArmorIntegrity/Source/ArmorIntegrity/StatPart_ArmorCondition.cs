@@ -14,12 +14,17 @@ namespace ArmorIntegrity
             Apparel apparel = thing as Apparel;
             if (apparel != null)
             {
-                if (apparel.def.useHitPoints && apparel.MaxHitPoints > 0)
-                    return Mathf.Clamp01((float)apparel.HitPoints / apparel.MaxHitPoints);
+                ArmorWearTracker tracker = ArmorWearTracker.Current;
 
-                Pawn wearer = apparel.Wearer;
-                if (wearer != null)
-                    return 1f - ArmorIntegrityUtility.GetIntrinsicBatteredSeverity(wearer);
+                if (apparel.def.useHitPoints && apparel.MaxHitPoints > 0)
+                {
+                    float pending = tracker != null ? tracker.GetFractionalHpDamage(apparel) : 0f;
+                    float effectiveHp = Mathf.Max(0f, apparel.HitPoints - pending);
+                    return Mathf.Clamp01(effectiveHp / apparel.MaxHitPoints);
+                }
+
+                if (tracker != null)
+                    return 1f - tracker.GetVirtualWear(apparel);
 
                 return 1f;
             }
@@ -33,9 +38,7 @@ namespace ArmorIntegrity
 
         public override void TransformValue(StatRequest req, ref float val)
         {
-            // V2 intentionally treats armor degradation as Sharp-only.
-            // Blunt/Heat values are left untouched for now and are reserved for later trauma work.
-            if (parentStat != StatDefOf.ArmorRating_Sharp || !req.HasThing)
+            if (!req.HasThing)
                 return;
 
             val *= GetConditionFactor(req.Thing);
@@ -43,7 +46,7 @@ namespace ArmorIntegrity
 
         public override string ExplanationPart(StatRequest req)
         {
-            if (parentStat != StatDefOf.ArmorRating_Sharp || !req.HasThing)
+            if (!req.HasThing)
                 return null;
 
             float factor = GetConditionFactor(req.Thing);
@@ -51,10 +54,10 @@ namespace ArmorIntegrity
                 return null;
 
             Apparel apparel = req.Thing as Apparel;
-            if (apparel != null && apparel.def.useHitPoints)
-                return "Armor integrity: x" + (factor * 100f).ToString("0") + "%";
+            if (apparel != null)
+                return "Armor integrity: x" + (factor * 100f).ToString("0.0") + "%";
 
-            return "Battered armor: x" + (factor * 100f).ToString("0") + "%";
+            return "Battered armor: x" + (factor * 100f).ToString("0.0") + "%";
         }
     }
 }
