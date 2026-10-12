@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ModMetaData>
-  <name>Armor Integrity (Prototype)</name>
+  <name>Armor Integrity (Prototype v2)</name>
   <author>PhillipFrei</author>
   <packageId>phillipfrei.armorintegrity</packageId>
   <supportedVersions>
@@ -21,5 +21,5 @@
     <li>HIMPDahak.ArmoredUp</li>
     <li>wu0yin.ArmoredUp</li>
   </incompatibleWith>
-  <description>Prototype armor overhaul. Armor loses effectiveness as it is worn down. Apparel uses real hit points; intrinsic armor from genes, implants, races and other pawn stats uses a regenerating Battered state. Penetration is handled layer by layer. No forced minimum damage or blunt-trauma system is included yet.</description>
+  <description>Prototype armor overhaul v2. Every armor-relevant hit is checked against Sharp armor. Hits wear down exactly one outermost layer at a time; damage and AP are not forwarded to inner layers. Apparel loses real hit points and is destroyed when exhausted. Intrinsic armor from genes, implants, races and other pawn stats uses regenerating Battered wear. Only one Battered status/bar is shown at a time.</description>
 </ModMetaData>
