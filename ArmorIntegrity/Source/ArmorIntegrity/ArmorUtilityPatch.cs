@@ -13,7 +13,7 @@ namespace ArmorIntegrity
         {
             Harmony harmony = new Harmony("phillipfrei.armorintegrity");
             harmony.PatchAll();
-            Log.Message("[Armor Integrity] Loaded prototype armor system.");
+            Log.Message("[Armor Integrity] Loaded prototype armor system v2.");
         }
     }
 
@@ -49,15 +49,14 @@ namespace ArmorIntegrity
             }
 
             StatDef armorStat = ArmorIntegrityUtility.ResolveArmorStat(damageDef);
-            float remainingDamage = amount;
-            float remainingAp = ArmorIntegrityUtility.ResolveArmorPenetration(amount, armorPenetration);
-            bool anyArmorReducedDamage = false;
-            bool anyMetalArmorReducedDamage = false;
+            float resolvedAp = ArmorIntegrityUtility.ResolveArmorPenetration(amount, armorPenetration);
 
+            // V2 deliberately has no damage/AP forwarding.
+            // Exactly one active layer handles a hit; the next layer is only considered by a later hit.
             if (pawn.apparel != null && part != null)
             {
                 List<Apparel> worn = new List<Apparel>(pawn.apparel.WornApparel);
-                for (int i = worn.Count - 1; i >= 0 && remainingDamage > Epsilon; i--)
+                for (int i = worn.Count - 1; i >= 0; i--)
                 {
                     Apparel apparel = worn[i];
                     if (apparel == null || apparel.Destroyed || apparel.def.apparel == null || !apparel.def.apparel.CoversBodyPart(part))
@@ -67,76 +66,40 @@ namespace ArmorIntegrity
                     if (currentArmor <= Epsilon)
                         continue;
 
-                    float damageIn = remainingDamage;
-                    float apIn = remainingAp;
-                    float wear = ArmorIntegrityUtility.CalculateWearPercentage(damageIn, apIn, currentArmor);
+                    string layerLabel = apparel.LabelCap;
+                    bool metal = ArmorIntegrityUtility.IsMetalArmor(apparel);
+                    float wear = ArmorIntegrityUtility.CalculateWearPercentage(amount, resolvedAp, currentArmor);
 
-                    float penetrationFraction = apIn > currentArmor
-                        ? Mathf.Clamp01((apIn - currentArmor) / apIn)
-                        : 0f;
+                    ArmorIntegrityUtility.DamageApparel(apparel, wear);
+                    ArmorIntegrityUtility.DebugLayer(pawn, layerLabel, amount, resolvedAp, currentArmor, wear, 0f, 0f);
 
-                    float damageOut = damageIn * penetrationFraction;
-                    float apOut = apIn > currentArmor ? Mathf.Max(0f, apIn - currentArmor) : 0f;
-
-                    if (apparel.def.useHitPoints)
-                        ArmorIntegrityUtility.DamageApparel(apparel, wear);
-                    else
-                        ArmorIntegrityUtility.AddBattered(pawn, wear);
-
-                    bool reduced = damageOut < damageIn - Epsilon;
-                    if (reduced)
-                    {
-                        anyArmorReducedDamage = true;
-                        if (ArmorIntegrityUtility.IsMetalArmor(apparel))
-                            anyMetalArmorReducedDamage = true;
-                    }
-
-                    ArmorIntegrityUtility.DebugLayer(pawn, apparel.LabelCap, damageIn, apIn, currentArmor, wear, damageOut, apOut);
-
-                    remainingDamage = damageOut;
-                    remainingAp = apOut;
+                    diminishedByMetalArmor = metal;
+                    deflectedByMetalArmor = metal;
+                    __result = 0f;
+                    return false;
                 }
             }
 
-            if (remainingDamage > Epsilon)
+            // No wearable layer was available for this body part: intrinsic armor is the final layer.
+            float currentIntrinsicArmor = Mathf.Max(0f, pawn.GetStatValue(armorStat));
+            if (currentIntrinsicArmor > Epsilon)
             {
-                float currentNaturalArmor = Mathf.Max(0f, pawn.GetStatValue(armorStat));
-                if (currentNaturalArmor > Epsilon)
-                {
-                    float damageIn = remainingDamage;
-                    float apIn = remainingAp;
-                    float wear = ArmorIntegrityUtility.CalculateWearPercentage(damageIn, apIn, currentNaturalArmor);
+                float wear = ArmorIntegrityUtility.CalculateWearPercentage(amount, resolvedAp, currentIntrinsicArmor);
+                ArmorIntegrityUtility.AddIntrinsicBattered(pawn, wear);
+                ArmorIntegrityUtility.DebugLayer(pawn, "intrinsic armor", amount, resolvedAp, currentIntrinsicArmor, wear, 0f, 0f);
 
-                    float penetrationFraction = apIn > currentNaturalArmor
-                        ? Mathf.Clamp01((apIn - currentNaturalArmor) / apIn)
-                        : 0f;
-
-                    float damageOut = damageIn * penetrationFraction;
-                    float apOut = apIn > currentNaturalArmor ? Mathf.Max(0f, apIn - currentNaturalArmor) : 0f;
-
-                    ArmorIntegrityUtility.AddBattered(pawn, wear);
-
-                    if (damageOut < damageIn - Epsilon)
-                    {
-                        anyArmorReducedDamage = true;
-                        if (pawn.RaceProps != null && pawn.RaceProps.IsMechanoid)
-                            anyMetalArmorReducedDamage = true;
-                    }
-
-                    ArmorIntegrityUtility.DebugLayer(pawn, "intrinsic armor", damageIn, apIn, currentNaturalArmor, wear, damageOut, apOut);
-
-                    remainingDamage = damageOut;
-                    remainingAp = apOut;
-                }
+                bool metal = pawn.RaceProps != null && pawn.RaceProps.IsMechanoid;
+                diminishedByMetalArmor = metal;
+                deflectedByMetalArmor = metal;
+                __result = 0f;
+                return false;
             }
 
-            diminishedByMetalArmor = anyMetalArmorReducedDamage;
-            deflectedByMetalArmor = anyMetalArmorReducedDamage && remainingDamage <= Epsilon;
+            // All armor layers are gone/exhausted. Only now does the original hit reach the pawn.
+            if (ArmorIntegrityMod.Settings != null && ArmorIntegrityMod.Settings.debugCombatLogging)
+                Log.Message(string.Format("[Armor Integrity] {0} | no active armor layer | full body damage {1:0.###}", pawn.LabelShortCap, amount));
 
-            if (ArmorIntegrityMod.Settings != null && ArmorIntegrityMod.Settings.debugCombatLogging && anyArmorReducedDamage)
-                Log.Message(string.Format("[Armor Integrity] Final damage for {0}: {1:0.###} -> {2:0.###}", pawn.LabelShortCap, amount, remainingDamage));
-
-            __result = remainingDamage <= Epsilon ? 0f : remainingDamage;
+            __result = amount;
             return false;
         }
     }
