@@ -1,14 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Defs>
+  <!-- Visible status for the currently outermost damaged armor layer only. -->
   <HediffDef>
     <defName>AI_BatteredArmor</defName>
     <label>battered armor</label>
-    <description>Repeated impacts have temporarily exhausted this pawn's intrinsic armor. The effect recovers over time.</description>
+    <description>The currently exposed armor layer has been worn down by repeated impacts.</description>
     <hediffClass>HediffWithComps</hediffClass>
     <maxSeverity>1.0</maxSeverity>
     <makesAlert>false</makesAlert>
     <displayWound>true</displayWound>
     <alwaysShowSeverity>true</alwaysShowSeverity>
+    <comps>
+      <li Class="ArmorIntegrity.HediffCompProperties_ArmorDisplaySync" />
+    </comps>
+  </HediffDef>
+
+  <!-- Hidden persistent wear for genes, implants, race armor and other pawn-intrinsic armor. -->
+  <HediffDef>
+    <defName>AI_IntrinsicArmorWear</defName>
+    <label>intrinsic armor wear</label>
+    <description>Internal storage for temporarily exhausted intrinsic armor.</description>
+    <hediffClass>HediffWithComps</hediffClass>
+    <maxSeverity>1.0</maxSeverity>
+    <makesAlert>false</makesAlert>
+    <displayWound>false</displayWound>
+    <alwaysShowSeverity>false</alwaysShowSeverity>
     <comps>
       <li Class="ArmorIntegrity.HediffCompProperties_ArmorRecovery" />
     </comps>
