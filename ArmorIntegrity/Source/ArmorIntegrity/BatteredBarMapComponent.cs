@@ -37,17 +37,17 @@ namespace ArmorIntegrity
                 if (pawn.Position.Fogged(map))
                     continue;
 
-                float severity = ArmorIntegrityUtility.GetBatteredSeverity(pawn);
-                if (severity <= 0f)
+                float battered;
+                if (!ArmorIntegrityUtility.TryGetDisplayedBatteredSeverity(pawn, out battered))
                     continue;
 
-                DrawBar(pawn, severity);
+                DrawBar(pawn, battered);
             }
         }
 
-        private static void DrawBar(Pawn pawn, float severity)
+        private static void DrawBar(Pawn pawn, float battered)
         {
-            float remaining = Mathf.Clamp01(1f - severity);
+            float remaining = Mathf.Clamp01(1f - battered);
             Vector2 uiPos = pawn.DrawPos.MapToUIPosition();
             Rect barRect = new Rect(uiPos.x - BarWidth * 0.5f, uiPos.y - VerticalOffset, BarWidth, BarHeight);
 
