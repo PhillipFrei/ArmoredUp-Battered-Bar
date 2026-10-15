@@ -1,6 +1,6 @@
-# Armor Integrity 1.0 – RimWorld 1.6
+# Armor Integrity 1.1 – RimWorld 1.6
 
-Armor Integrity ist ein bewusst schlankes Rüstungssystem mit Armored-Up-/Vanilla-Layerreihenfolge, eigener Verschleißformel und Restschaden durch mehrere Schichten.
+Armor Integrity ist ein schlankes Rüstungssystem mit Armored-Up-/Vanilla-Layerreihenfolge, eigener Verschleißformel, Restschaden durch mehrere Schichten und genau einem kontextbezogenen Rüstungsbalken.
 
 ## 1. Layer-Reihenfolge
 
@@ -14,7 +14,7 @@ Nach allen passenden Apparel-Schichten kommt intrinsische Rüstung aus Pawn-Stat
 
 Armor Integrity verwendet absichtlich **Sharp-AR für jeden rüstungsrelevanten Treffer**.
 
-Blunt und Heat werden nicht als parallele Zustandskanäle abgesenkt. Der sichtbare Sharp-Wert sinkt mit dem Rüstungszustand.
+Blunt und Heat werden nicht als parallele Zustandskanäle abgesenkt.
 
 ## 3. Verschleiß
 
@@ -26,7 +26,7 @@ Standard:
 
 `DegradationFactor = 0.10`
 
-Die aktuelle AR wird **vor** diesem Treffer gelesen und für die Berechnung eingefroren.
+Die aktuelle AR wird vor diesem Treffer gelesen.
 
 ## 4. Block und Weitergabe
 
@@ -34,13 +34,19 @@ Nominaler Blockanteil:
 
 `NominalBlock = min(1, currentAR / AP)`
 
-Rest:
-
-`RestDamage = Damage × (1 - EffectiveBlock)`
+Nach dem Block wird AP wie bisher weitergegeben:
 
 `RestAP = AP × (1 - EffectiveBlock)`
 
-Der Rest läuft im selben Treffer zur nächsten passenden Schicht.
+Der Restschaden bekommt zusätzlich einen einstellbaren Dämpfungsfaktor:
+
+`RestDamage = Damage × (1 - EffectiveBlock) × PassthroughDamageFactor`
+
+Standard:
+
+`PassthroughDamageFactor = 0.75`
+
+Der Regler reicht von 0.25 bis 1.00. Er wird nach jeder tatsächlich verarbeiteten Rüstungsschicht erneut angewendet. AP bekommt keinen zusätzlichen Koeffizienten.
 
 ## 5. Haltbarkeitsgrenze bei großen Treffern
 
@@ -52,9 +58,9 @@ Wenn der Treffer mehr Verschleiß verlangen würde als noch Zustand vorhanden is
 
 `EffectiveBlock = NominalBlock × CapacityFraction`
 
-Die Schicht wird vollständig verbraucht und der nicht mehr tragbare Teil des Treffers geht im selben Treffer weiter.
+Die Schicht wird vollständig verbraucht und der nicht mehr tragbare Teil desselben Treffers geht weiter.
 
-Damit kann z. B. ein schwaches Kleidungsstück keine riesige Explosion vollständig verschlucken.
+Damit kann ein schwaches Kleidungsstück keine riesige Explosion vollständig verschlucken.
 
 ## 6. Apparel-HP
 
@@ -85,17 +91,20 @@ Intrinsische Rüstung hat keine Apparel-HP und verwendet deshalb `AI_IntrinsicAr
 
 Wenn intrinsische Rüstung durch einen großen Treffer vollständig erschöpft wird, geht der verbleibende Teil desselben Treffers an den Körper weiter.
 
-## 8. Ein Balken
+## 8. Der eine Rüstungsbalken
 
-Es gibt genau **einen** Balken pro Pawn.
+Armor Integrity speichert nur das Körperteil des letzten rüstungsrelevanten Treffers.
 
-Die Anzeige ist absichtlich einfach:
+Für dieses Körperteil wird jedes Mal dieselbe äußere-zu-innere Reihenfolge wie im Kampf verwendet:
 
-1. getragene Armor von außen nach innen prüfen
-2. erste beschädigte, noch vorhandene Armor anzeigen
-3. wenn keine beschädigte Apparel-Armor vorhanden ist, intrinsisches Battered anzeigen
+1. aktuelle äußerste noch vorhandene Armor finden
+2. ist sie unbeschädigt -> kein Balken
+3. ist sie beschädigt -> ihr exakter Zustand wird angezeigt
+4. ist sie zerstört -> die nächste überlebende Schicht wird automatisch zur äußeren Schicht
+5. gibt es auf diesem Trefferpfad kein Apparel mehr -> intrinsisches Battered anzeigen
+6. tote Pawns zeigen keinen Balken
 
-Es gibt keine zusätzliche Datenbank für eine "zuletzt getroffene Schicht".
+Beschädigte innere Kleidung wird also nicht mehr angezeigt, solange darüber eine intakte Rüstungsschicht liegt.
 
 ## 9. AP-Fallback
 
@@ -126,6 +135,6 @@ Bewusst nicht übernommen wurden:
 2. Den neuen `ArmorIntegrity`-Ordner einsetzen.
 3. Armored Up und alte separate Battered-Bar-Addons deaktivieren.
 4. Harmony und Armor Integrity aktivieren.
-5. RimWorld **vollständig neu starten**, weil die DLL nicht zur Laufzeit neu geladen wird.
+5. RimWorld vollständig neu starten, weil die DLL nicht zur Laufzeit neu geladen wird.
 
 Bei aktiviertem `Debug-Kampflogging` schreibt jede verarbeitete Schicht Damage, AP, Sharp-AR, Blockanteil, Kapazität, Verschleiß und Restwerte ins Player.log.
