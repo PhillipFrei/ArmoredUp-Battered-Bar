@@ -5,13 +5,14 @@ using Verse;
 
 namespace ArmorIntegrity
 {
-    // RimWorld apparel HP are integers. This component stores only the fractional
-    // remainder produced by Armor Integrity's percentage-based wear calculation.
+    // RimWorld apparel HP are integers. This component stores fractional wear
+    // and the body part of the last armor-relevant hit for the single UI bar.
     public sealed class ArmorWearTracker : GameComponent
     {
         private Dictionary<string, float> fractionalHpDamage = new Dictionary<string, float>();
         private Dictionary<string, float> virtualWear = new Dictionary<string, float>();
         private Dictionary<string, int> lastKnownHp = new Dictionary<string, int>();
+        private Dictionary<string, int> lastHitPartIndex = new Dictionary<string, int>();
 
         public ArmorWearTracker(Game game)
         {
@@ -22,6 +23,7 @@ namespace ArmorIntegrity
             Scribe_Collections.Look(ref fractionalHpDamage, "AI_fractionalHpDamage", LookMode.Value, LookMode.Value);
             Scribe_Collections.Look(ref virtualWear, "AI_virtualWear", LookMode.Value, LookMode.Value);
             Scribe_Collections.Look(ref lastKnownHp, "AI_lastKnownHp", LookMode.Value, LookMode.Value);
+            Scribe_Collections.Look(ref lastHitPartIndex, "AI_lastHitPartIndex", LookMode.Value, LookMode.Value);
 
             if (Scribe.mode == LoadSaveMode.PostLoadInit)
             {
@@ -31,6 +33,8 @@ namespace ArmorIntegrity
                     virtualWear = new Dictionary<string, float>();
                 if (lastKnownHp == null)
                     lastKnownHp = new Dictionary<string, int>();
+                if (lastHitPartIndex == null)
+                    lastHitPartIndex = new Dictionary<string, int>();
             }
         }
 
@@ -42,14 +46,19 @@ namespace ArmorIntegrity
             }
         }
 
-        private static string Key(Apparel apparel)
+        private static string ApparelKey(Apparel apparel)
         {
             return apparel == null ? null : apparel.ThingID;
         }
 
+        private static string PawnKey(Pawn pawn)
+        {
+            return pawn == null ? null : pawn.ThingID;
+        }
+
         public float GetFractionalHpDamage(Apparel apparel)
         {
-            string key = Key(apparel);
+            string key = ApparelKey(apparel);
             if (key == null)
                 return 0f;
 
@@ -69,7 +78,7 @@ namespace ArmorIntegrity
 
         public void SetFractionalHpDamage(Apparel apparel, float value)
         {
-            string key = Key(apparel);
+            string key = ApparelKey(apparel);
             if (key == null)
                 return;
 
@@ -83,14 +92,14 @@ namespace ArmorIntegrity
 
         public void RecordCurrentHp(Apparel apparel)
         {
-            string key = Key(apparel);
+            string key = ApparelKey(apparel);
             if (key != null)
                 lastKnownHp[key] = apparel.HitPoints;
         }
 
         public float GetVirtualWear(Apparel apparel)
         {
-            string key = Key(apparel);
+            string key = ApparelKey(apparel);
             if (key == null)
                 return 0f;
 
@@ -100,16 +109,51 @@ namespace ArmorIntegrity
 
         public void AddVirtualWear(Apparel apparel, float severityDelta)
         {
-            string key = Key(apparel);
+            string key = ApparelKey(apparel);
             if (key == null || severityDelta <= 0f)
                 return;
 
             virtualWear[key] = Mathf.Clamp01(GetVirtualWear(apparel) + severityDelta);
         }
 
+        public void SetLastHitPart(Pawn pawn, BodyPartRecord part)
+        {
+            string pawnKey = PawnKey(pawn);
+            if (pawnKey == null || pawn.RaceProps == null || pawn.RaceProps.body == null || part == null)
+                return;
+
+            List<BodyPartRecord> parts = pawn.RaceProps.body.AllParts;
+            int index = parts.IndexOf(part);
+            if (index >= 0)
+                lastHitPartIndex[pawnKey] = index;
+        }
+
+        public bool TryGetLastHitPart(Pawn pawn, out BodyPartRecord part)
+        {
+            part = null;
+
+            string pawnKey = PawnKey(pawn);
+            if (pawnKey == null || pawn.RaceProps == null || pawn.RaceProps.body == null)
+                return false;
+
+            int index;
+            if (!lastHitPartIndex.TryGetValue(pawnKey, out index))
+                return false;
+
+            List<BodyPartRecord> parts = pawn.RaceProps.body.AllParts;
+            if (index < 0 || index >= parts.Count)
+            {
+                lastHitPartIndex.Remove(pawnKey);
+                return false;
+            }
+
+            part = parts[index];
+            return part != null;
+        }
+
         public void Clear(Apparel apparel)
         {
-            string key = Key(apparel);
+            string key = ApparelKey(apparel);
             if (key == null)
                 return;
 
