@@ -47,5 +47,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ArmorIntegrity_RimWorld_1.6_v1.0
-          path: artifact/ArmorIntegrity
+          path: artifact
           if-no-files-found: error
