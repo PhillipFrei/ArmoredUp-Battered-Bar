@@ -7,25 +7,20 @@ namespace ArmorIntegrity
 {
     public static class ArmorIntegrityUtility
     {
-        private const float Epsilon = 0.0001f;
-        private static int automaticTraceBudget = 80;
+        public const float Epsilon = 0.0001f;
 
         public static float GetIntrinsicBatteredSeverity(Pawn pawn)
         {
             if (pawn == null || pawn.health == null || pawn.health.hediffSet == null)
                 return 0f;
 
-            float result = 0f;
+            Hediff hediff = pawn.health.hediffSet.GetFirstHediffOfDef(ArmorIntegrityDefOf.AI_IntrinsicArmorWear);
+            return hediff == null ? 0f : Mathf.Clamp01(hediff.Severity);
+        }
 
-            Hediff current = pawn.health.hediffSet.GetFirstHediffOfDef(ArmorIntegrityDefOf.AI_IntrinsicArmorWear);
-            if (current != null)
-                result = Mathf.Max(result, Mathf.Clamp01(current.Severity));
-
-            Hediff legacy = pawn.health.hediffSet.GetFirstHediffOfDef(ArmorIntegrityDefOf.BatteredArmor);
-            if (legacy != null)
-                result = Mathf.Max(result, Mathf.Clamp01(legacy.Severity));
-
-            return result;
+        public static float GetIntrinsicConditionFactor(Pawn pawn)
+        {
+            return Mathf.Clamp01(1f - GetIntrinsicBatteredSeverity(pawn));
         }
 
         public static void AddIntrinsicBattered(Pawn pawn, float percentagePoints)
@@ -36,10 +31,6 @@ namespace ArmorIntegrity
             float severityDelta = percentagePoints / 100f;
             if (severityDelta <= 0f)
                 return;
-
-            ArmorWearTracker tracker = ArmorWearTracker.Instance;
-            if (tracker != null)
-                tracker.SetDisplayedIntrinsic(pawn);
 
             Hediff hediff = pawn.health.hediffSet.GetFirstHediffOfDef(ArmorIntegrityDefOf.AI_IntrinsicArmorWear);
             if (hediff == null)
@@ -52,8 +43,6 @@ namespace ArmorIntegrity
             {
                 hediff.Severity = Mathf.Clamp01(hediff.Severity + severityDelta);
             }
-
-            EnsureDisplayBattered(pawn);
         }
 
         public static float GetApparelConditionFactor(Apparel apparel)
@@ -70,13 +59,52 @@ namespace ArmorIntegrity
                 return Mathf.Clamp01(effectiveHp / apparel.MaxHitPoints);
             }
 
-            float wear = tracker != null ? tracker.GetVirtualWear(apparel) : 0f;
-            return Mathf.Clamp01(1f - wear);
+            float virtualWear = tracker != null ? tracker.GetVirtualWear(apparel) : 0f;
+            return Mathf.Clamp01(1f - virtualWear);
         }
 
         public static float GetApparelBatteredSeverity(Apparel apparel)
         {
-            return 1f - GetApparelConditionFactor(apparel);
+            return Mathf.Clamp01(1f - GetApparelConditionFactor(apparel));
+        }
+
+        public static bool IsArmorApparel(Apparel apparel)
+        {
+            if (apparel == null || apparel.Destroyed || apparel.def.apparel == null)
+                return false;
+
+            return apparel.GetStatValue(StatDefOf.ArmorRating_Sharp) > Epsilon;
+        }
+
+        public static bool TryGetDisplayedBatteredSeverity(Pawn pawn, out float severity)
+        {
+            severity = 0f;
+            if (pawn == null)
+                return false;
+
+            // Same simple ordering used by RimWorld/Armored Up: worn apparel is
+            // inspected from the last entry back toward the first. For the single
+            // UI bar we show the outermost damaged surviving armor item.
+            if (pawn.apparel != null)
+            {
+                List<Apparel> worn = pawn.apparel.WornApparel;
+                for (int i = worn.Count - 1; i >= 0; i--)
+                {
+                    Apparel apparel = worn[i];
+                    if (!IsArmorApparel(apparel))
+                        continue;
+
+                    float battered = GetApparelBatteredSeverity(apparel);
+                    if (battered <= Epsilon)
+                        continue;
+
+                    severity = battered;
+                    return true;
+                }
+            }
+
+            severity = GetIntrinsicBatteredSeverity(pawn);
+            return severity > Epsilon;
         }
 
         public static void EnsureDisplayBattered(Pawn pawn)
@@ -101,60 +129,24 @@ namespace ArmorIntegrity
             }
         }
 
-        public static bool TryGetDisplayedBatteredSeverity(Pawn pawn, out float severity)
-        {
-            severity = 0f;
-            if (pawn == null)
-                return false;
-
-            ArmorWearTracker tracker = ArmorWearTracker.Instance;
-            if (tracker == null)
-                return false;
-
-            Apparel displayedApparel;
-            bool intrinsic;
-            if (!tracker.TryGetDisplayedLayer(pawn, out displayedApparel, out intrinsic))
-                return false;
-
-            if (intrinsic)
-            {
-                severity = GetIntrinsicBatteredSeverity(pawn);
-                return severity > Epsilon;
-            }
-
-            if (displayedApparel == null || displayedApparel.Destroyed)
-                return false;
-
-            severity = Mathf.Clamp01(GetApparelBatteredSeverity(displayedApparel));
-            return severity > Epsilon;
-        }
-
-        private static bool IsArmorApparel(Apparel apparel)
-        {
-            if (apparel == null || apparel.Destroyed)
-                return false;
-
-            // This prototype intentionally uses Sharp as the only core armor channel.
-            return apparel.GetStatValue(StatDefOf.ArmorRating_Sharp) > Epsilon;
-        }
-
         public static float ResolveArmorPenetration(float amount, float armorPenetration)
         {
-            if (!float.IsNaN(armorPenetration) && !float.IsInfinity(armorPenetration) && armorPenetration > Epsilon)
+            if (!float.IsNaN(armorPenetration) &&
+                !float.IsInfinity(armorPenetration) &&
+                armorPenetration > Epsilon)
                 return armorPenetration;
 
             float factor = ArmorIntegrityMod.Settings != null
                 ? ArmorIntegrityMod.Settings.fallbackApPerDamage
                 : 0.015f;
 
-            if (factor <= 0f)
-                return 0f;
-
-            return amount * factor;
+            return factor > 0f ? Mathf.Max(0f, amount) * factor : 0f;
         }
 
         public static StatDef ResolveArmorStat(DamageDef damageDef)
         {
+            // Deliberate Armor Integrity rule: every armor-relevant hit uses Sharp.
+            // Blunt/Heat are not parallel degradation channels.
             return StatDefOf.ArmorRating_Sharp;
         }
 
@@ -167,77 +159,104 @@ namespace ArmorIntegrity
                 ? ArmorIntegrityMod.Settings.degradationFactor
                 : 0.10f;
 
-            return Mathf.Max(0f, amount * armorPenetration / currentArmorRating * Mathf.Max(0f, factor));
+            return Mathf.Max(
+                0f,
+                amount * armorPenetration / currentArmorRating * Mathf.Max(0f, factor));
         }
 
-        public static bool DamageApparel(Apparel apparel, float wearPercentage, out float exactHpDamage, out int appliedHpDamage)
+        public static float CalculateNominalBlock(float currentArmorRating, float armorPenetration)
+        {
+            if (currentArmorRating <= Epsilon)
+                return 0f;
+
+            float effectiveAp = Mathf.Max(armorPenetration, 0.001f);
+            return Mathf.Clamp01(currentArmorRating / effectiveAp);
+        }
+
+        public static float CalculateCapacityFraction(float availableWearPercentage, float requestedWearPercentage)
+        {
+            if (requestedWearPercentage <= Epsilon)
+                return 1f;
+
+            return Mathf.Clamp01(
+                Mathf.Max(0f, availableWearPercentage) / requestedWearPercentage);
+        }
+
+        public static float ApplyApparelWear(
+            Apparel apparel,
+            float wearPercentage,
+            out float exactHpDamage,
+            out int appliedHpDamage,
+            out bool destroyed)
         {
             exactHpDamage = 0f;
             appliedHpDamage = 0;
+            destroyed = false;
 
             if (apparel == null || apparel.Destroyed || wearPercentage <= 0f)
-                return false;
+                return 0f;
 
-            Pawn wearer = apparel.Wearer;
+            float availableWear = GetApparelConditionFactor(apparel) * 100f;
+            float appliedWear = Mathf.Min(Mathf.Max(0f, wearPercentage), availableWear);
+            if (appliedWear <= Epsilon)
+                return 0f;
+
             ArmorWearTracker tracker = ArmorWearTracker.Instance;
-
-            if (tracker != null && wearer != null)
-                tracker.SetDisplayedApparel(wearer, apparel);
 
             if (apparel.def.useHitPoints && apparel.MaxHitPoints > 0)
             {
-                exactHpDamage = apparel.MaxHitPoints * wearPercentage / 100f;
+                exactHpDamage = apparel.MaxHitPoints * appliedWear / 100f;
+
+                // If this hit consumes all remaining effective condition, destroy the
+                // item directly. This is also what enables same-hit overflow.
+                if (appliedWear >= availableWear - Epsilon)
+                {
+                    appliedHpDamage = apparel.HitPoints;
+                    if (tracker != null)
+                        tracker.Clear(apparel);
+
+                    DestroyApparel(apparel);
+                    destroyed = true;
+                    return appliedWear;
+                }
 
                 float pending = tracker != null ? tracker.GetFractionalHpDamage(apparel) : 0f;
                 float accumulated = Mathf.Max(0f, pending + exactHpDamage);
                 int wholeDamage = Mathf.FloorToInt(accumulated + 0.00001f);
                 float remainder = accumulated - wholeDamage;
 
-                if (tracker != null)
-                    tracker.SetFractionalHpDamage(apparel, remainder);
-
                 if (wholeDamage > 0)
                 {
-                    appliedHpDamage = Mathf.Min(wholeDamage, apparel.HitPoints);
-
-                    if (wholeDamage >= apparel.HitPoints)
-                    {
-                        if (tracker != null)
-                            tracker.Clear(apparel);
-
-                        DestroyApparel(apparel);
-                    }
-                    else
-                    {
-                        apparel.HitPoints -= wholeDamage;
-                    }
+                    appliedHpDamage = Mathf.Min(wholeDamage, Mathf.Max(0, apparel.HitPoints - 1));
+                    if (appliedHpDamage > 0)
+                        apparel.HitPoints -= appliedHpDamage;
                 }
 
-                // Important: even sub-1-HP wear is a real hit for the bar/Hediff.
-                if (wearer != null)
-                    EnsureDisplayBattered(wearer);
+                if (tracker != null)
+                {
+                    tracker.SetFractionalHpDamage(apparel, remainder);
+                    tracker.RecordCurrentHp(apparel);
+                }
 
-                return true;
+                return appliedWear;
             }
 
-            // Physical apparel without normal HP gets its own virtual integrity.
+            // Rare modded apparel can be armor without normal Thing hit points.
+            // Give it a virtual condition so it still participates consistently.
             if (tracker != null)
             {
-                tracker.AddVirtualWear(apparel, wearPercentage / 100f);
-
-                if (tracker.GetVirtualWear(apparel) >= 0.9999f)
+                tracker.AddVirtualWear(apparel, appliedWear / 100f);
+                if (tracker.GetVirtualWear(apparel) >= 1f - Epsilon)
                 {
                     tracker.Clear(apparel);
                     DestroyApparel(apparel);
+                    destroyed = true;
                 }
 
-                if (wearer != null)
-                    EnsureDisplayBattered(wearer);
-
-                return true;
+                return appliedWear;
             }
 
-            return false;
+            return 0f;
         }
 
         private static void DestroyApparel(Apparel apparel)
@@ -268,52 +287,35 @@ namespace ArmorIntegrity
 
         public static void DebugLayer(
             Pawn pawn,
-            Apparel apparel,
             string layer,
             float damageIn,
             float apIn,
-            float armor,
-            float wear,
-            float exactHpDamage,
-            int appliedHpDamage)
+            float currentArmor,
+            float nominalBlock,
+            float capacityFraction,
+            float requestedWear,
+            float appliedWear,
+            float damageOut,
+            float apOut,
+            bool destroyed)
         {
-            bool requested = ArmorIntegrityMod.Settings != null && ArmorIntegrityMod.Settings.debugCombatLogging;
-            bool automatic = automaticTraceBudget > 0;
-
-            if (!requested && !automatic)
+            if (ArmorIntegrityMod.Settings == null || !ArmorIntegrityMod.Settings.debugCombatLogging)
                 return;
 
-            if (automatic)
-                automaticTraceBudget--;
-
-            string pawnLabel = pawn != null ? pawn.LabelShortCap : "<null>";
-            string itemState = apparel == null
-                ? "intrinsic"
-                : string.Format(
-                    "useHP={0} HP={1}/{2} pending={3:0.###}",
-                    apparel.def.useHitPoints,
-                    apparel.def.useHitPoints ? apparel.HitPoints : 0,
-                    apparel.def.useHitPoints ? apparel.MaxHitPoints : 0,
-                    ArmorWearTracker.Instance != null ? ArmorWearTracker.Instance.GetFractionalHpDamage(apparel) : 0f);
-
             Log.Message(string.Format(
-                "[Armor Integrity TRACE] {0} | {1} | D={2:0.###} AP={3:P1} SharpAR={4:P1} wear={5:0.###}% exactHP={6:0.###} appliedHP={7} | {8}",
-                pawnLabel, layer, damageIn, apIn, armor, wear, exactHpDamage, appliedHpDamage, itemState));
-        }
-
-        public static void TraceNoArmor(Pawn pawn, float amount, float ap)
-        {
-            bool requested = ArmorIntegrityMod.Settings != null && ArmorIntegrityMod.Settings.debugCombatLogging;
-            bool automatic = automaticTraceBudget > 0;
-            if (!requested && !automatic)
-                return;
-
-            if (automatic)
-                automaticTraceBudget--;
-
-            Log.Message(string.Format(
-                "[Armor Integrity TRACE] {0} | no active armor layer | D={1:0.###} AP={2:P1} -> body",
-                pawn != null ? pawn.LabelShortCap : "<null>", amount, ap));
+                "[Armor Integrity] {0} | {1} | D {2:0.###}->{3:0.###} | AP {4:P1}->{5:P1} | Sharp AR {6:P1} | block {7:P1} × capacity {8:P1} | wear {9:0.###}%/{10:0.###}% | destroyed={11}",
+                pawn != null ? pawn.LabelShortCap : "<null>",
+                layer,
+                damageIn,
+                damageOut,
+                apIn,
+                apOut,
+                currentArmor,
+                nominalBlock,
+                capacityFraction,
+                requestedWear,
+                appliedWear,
+                destroyed));
         }
     }
 }

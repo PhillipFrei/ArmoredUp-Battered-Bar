@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Defs>
-  <!-- Visible status for the currently outermost damaged armor layer only. -->
+  <!-- Visible status. For apparel its severity mirrors the single outermost
+       damaged armor layer. It has no stat effect of its own. -->
   <HediffDef>
     <defName>AI_BatteredArmor</defName>
     <label>battered armor</label>
-    <description>The currently exposed armor layer has been worn down by repeated impacts.</description>
+    <description>The currently visible armor layer has lost part of its protective integrity.</description>
     <hediffClass>HediffWithComps</hediffClass>
     <maxSeverity>1.0</maxSeverity>
     <makesAlert>false</makesAlert>
@@ -15,11 +16,11 @@
     </comps>
   </HediffDef>
 
-  <!-- Hidden persistent wear for genes, implants, race armor and other pawn-intrinsic armor. -->
+  <!-- Persistent condition storage for natural, gene and implant armor. -->
   <HediffDef>
     <defName>AI_IntrinsicArmorWear</defName>
     <label>intrinsic armor wear</label>
-    <description>Internal storage for temporarily exhausted intrinsic armor.</description>
+    <description>Internal Armor Integrity state for temporarily exhausted intrinsic armor.</description>
     <hediffClass>HediffWithComps</hediffClass>
     <maxSeverity>1.0</maxSeverity>
     <makesAlert>false</makesAlert>
@@ -30,11 +31,12 @@
     </comps>
   </HediffDef>
 
-  <!-- Compatibility def for saves made with Armored Up. -->
+  <!-- Save-compatibility only for old Armored Up saves. Armor Integrity never
+       reads this severity as its own armor state. -->
   <HediffDef>
     <defName>BatteredArmor</defName>
     <label>battered armor</label>
-    <description>Legacy Armored Up battered armor state retained for save compatibility.</description>
+    <description>Legacy Armored Up state retained only so old saves can load safely.</description>
     <hediffClass>HediffWithComps</hediffClass>
     <maxSeverity>1.0</maxSeverity>
     <makesAlert>false</makesAlert>

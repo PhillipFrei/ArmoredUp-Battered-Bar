@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Patch>
-  <!-- V2.1: degradation intentionally affects Sharp only. -->
+  <!-- Armor Integrity deliberately degrades only Sharp armor. -->
   <Operation Class="PatchOperationConditional">
     <xpath>Defs/StatDef[defName="ArmorRating_Sharp"]/parts</xpath>
     <match Class="PatchOperationAdd">

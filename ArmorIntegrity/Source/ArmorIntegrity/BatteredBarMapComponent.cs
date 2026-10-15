@@ -49,7 +49,11 @@ namespace ArmorIntegrity
         {
             float remaining = Mathf.Clamp01(1f - battered);
             Vector2 uiPos = pawn.DrawPos.MapToUIPosition();
-            Rect barRect = new Rect(uiPos.x - BarWidth * 0.5f, uiPos.y - VerticalOffset, BarWidth, BarHeight);
+            Rect barRect = new Rect(
+                uiPos.x - BarWidth * 0.5f,
+                uiPos.y - VerticalOffset,
+                BarWidth,
+                BarHeight);
 
             Rect fillRect = barRect;
             fillRect.x += 1f;
@@ -58,11 +62,14 @@ namespace ArmorIntegrity
             fillRect.width = Mathf.Max(0f, (barRect.width - 2f) * remaining);
 
             Color oldColor = GUI.color;
+
             GUI.color = new Color(0f, 0f, 0f, 0.72f);
             GUI.DrawTexture(barRect, BaseContent.WhiteTex);
+
             GUI.color = EffectColor(remaining);
             if (fillRect.width > 0.5f)
                 GUI.DrawTexture(fillRect, BaseContent.WhiteTex);
+
             GUI.color = oldColor;
         }
 

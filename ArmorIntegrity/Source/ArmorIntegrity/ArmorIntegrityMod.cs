@@ -1,4 +1,3 @@
-using RimWorld;
 using UnityEngine;
 using Verse;
 
@@ -51,26 +50,29 @@ namespace ArmorIntegrity
             Listing_Standard listing = new Listing_Standard();
             listing.Begin(inRect);
 
-            listing.Label("Armor degradation factor: " + Settings.degradationFactor.ToString("0.000"));
+            listing.Label("Rüstungsverschleiß-Faktor: " + Settings.degradationFactor.ToString("0.000"));
             Settings.degradationFactor = listing.Slider(Settings.degradationFactor, 0f, 0.50f);
-            listing.Label("Battered/Apparel wear per hit = Damage × AP ÷ current AR × this factor. Default: 0.100");
+            listing.Label("Verschleiß pro Treffer = Damage × AP ÷ aktuelle Sharp-AR × Faktor. Standard: 0.100");
             listing.Gap();
 
-            listing.Label("Fallback AP per damage: " + Settings.fallbackApPerDamage.ToString("0.000"));
+            listing.Label("Fallback-AP pro Damage: " + Settings.fallbackApPerDamage.ToString("0.000"));
             Settings.fallbackApPerDamage = listing.Slider(Settings.fallbackApPerDamage, 0f, 0.05f);
-            listing.Label("Used only when incoming AP is zero or unusable. Internal AP = Damage × this value. Default: 0.015");
+            listing.Label("Nur wenn ein Treffer keine brauchbare AP liefert. AP = Damage × Wert. Standard: 0.015");
             listing.Gap();
 
-            listing.Label("Battered recovery per day: " + (Settings.batteredRecoveryPerDay * 100f).ToString("0") + "%");
+            listing.Label("Battered-Regeneration pro Tag: " + (Settings.batteredRecoveryPerDay * 100f).ToString("0") + "%");
             Settings.batteredRecoveryPerDay = listing.Slider(Settings.batteredRecoveryPerDay, 0f, 2f);
-            listing.Label("Recovery speed for intrinsic armor from genes, implants, races and other pawn armor stats. Default: 50% per day.");
+            listing.Label("Regeneration intrinsischer Rüstung aus Genen, Implantaten und natürlicher Rüstung. Standard: 50% pro Tag.");
             listing.Gap();
 
-            listing.CheckboxLabeled("Show Battered bar above pawns", ref Settings.showBatteredBar);
-            listing.CheckboxLabeled("Debug combat logging", ref Settings.debugCombatLogging, "Writes every Armor Integrity layer calculation to the RimWorld log. Use only for testing.");
+            listing.CheckboxLabeled("Battered-Balken über Pawns anzeigen", ref Settings.showBatteredBar);
+            listing.CheckboxLabeled(
+                "Debug-Kampflogging",
+                ref Settings.debugCombatLogging,
+                "Schreibt die Armor-Integrity-Berechnung jeder verarbeiteten Rüstungsschicht ins RimWorld-Log.");
             listing.GapLine();
 
-            if (listing.ButtonText("Reset to defaults"))
+            if (listing.ButtonText("Auf Standardwerte zurücksetzen"))
                 Settings.ResetToDefaults();
 
             listing.End();

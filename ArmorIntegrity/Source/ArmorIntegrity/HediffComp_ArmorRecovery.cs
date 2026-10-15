@@ -21,7 +21,7 @@ namespace ArmorIntegrity
                 ? ArmorIntegrityMod.Settings.batteredRecoveryPerDay
                 : 0.50f;
 
-            severityAdjustment -= perDay / 60000f;
+            severityAdjustment -= Mathf.Max(0f, perDay) / 60000f;
         }
     }
 
@@ -41,7 +41,7 @@ namespace ArmorIntegrity
             {
                 float severity;
                 return !ArmorIntegrityUtility.TryGetDisplayedBatteredSeverity(parent.pawn, out severity)
-                    || severity <= 0.0001f;
+                    || severity <= ArmorIntegrityUtility.Epsilon;
             }
         }
 

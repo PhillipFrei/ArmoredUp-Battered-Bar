@@ -16,17 +16,15 @@ namespace ArmorIntegrity
 
             Pawn pawn = thing as Pawn;
             if (pawn != null)
-                return 1f - ArmorIntegrityUtility.GetIntrinsicBatteredSeverity(pawn);
+                return ArmorIntegrityUtility.GetIntrinsicConditionFactor(pawn);
 
             return 1f;
         }
 
         public override void TransformValue(StatRequest req, ref float val)
         {
-            if (!req.HasThing)
-                return;
-
-            val *= GetConditionFactor(req.Thing);
+            if (req.HasThing)
+                val *= GetConditionFactor(req.Thing);
         }
 
         public override string ExplanationPart(StatRequest req)
@@ -38,11 +36,13 @@ namespace ArmorIntegrity
             if (factor >= 0.9999f)
                 return null;
 
-            Apparel apparel = req.Thing as Apparel;
-            if (apparel != null)
-                return "Armor integrity: x" + (factor * 100f).ToString("0.0") + "%";
+            if (req.Thing is Apparel)
+                return "Armor Integrity: x" + (factor * 100f).ToString("0.0") + "%";
 
-            return "Battered armor: x" + (factor * 100f).ToString("0.0") + "%";
+            if (req.Thing is Pawn)
+                return "Battered Armor: x" + (factor * 100f).ToString("0.0") + "%";
+
+            return null;
         }
     }
 }
