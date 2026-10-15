@@ -13,7 +13,7 @@ namespace ArmorIntegrity
         {
             Harmony harmony = new Harmony("phillipfrei.armorintegrity");
             harmony.PatchAll();
-            Log.Message("[Armor Integrity] Loaded Armor Integrity 1.0.");
+            Log.Message("[Armor Integrity] Loaded Armor Integrity 1.1.");
         }
     }
 
@@ -51,9 +51,14 @@ namespace ArmorIntegrity
                 return false;
             }
 
+            ArmorWearTracker tracker = ArmorWearTracker.Instance;
+            if (tracker != null && part != null)
+                tracker.SetLastHitPart(pawn, part);
+
             StatDef armorStat = ArmorIntegrityUtility.ResolveArmorStat(damageDef);
             float damage = amount;
             float ap = ArmorIntegrityUtility.ResolveArmorPenetration(amount, armorPenetration);
+            float passthroughDamageFactor = ArmorIntegrityUtility.GetPassthroughDamageFactor();
 
             if (pawn.apparel != null && part != null)
             {
@@ -95,7 +100,7 @@ namespace ArmorIntegrity
                         out destroyed);
 
                     float passFraction = 1f - effectiveBlock;
-                    damage = Mathf.Max(0f, damage * passFraction);
+                    damage = Mathf.Max(0f, damage * passFraction * passthroughDamageFactor);
                     ap = Mathf.Max(0f, ap * passFraction);
 
                     bool metal = ArmorIntegrityUtility.IsMetalArmor(apparel);
@@ -143,7 +148,7 @@ namespace ArmorIntegrity
                     ArmorIntegrityUtility.AddIntrinsicBattered(pawn, appliedWear);
 
                     float passFraction = 1f - effectiveBlock;
-                    damage = Mathf.Max(0f, damage * passFraction);
+                    damage = Mathf.Max(0f, damage * passFraction * passthroughDamageFactor);
                     ap = Mathf.Max(0f, ap * passFraction);
 
                     bool metal = pawn.RaceProps != null && pawn.RaceProps.IsMechanoid;
