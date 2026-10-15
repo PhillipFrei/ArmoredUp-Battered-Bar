@@ -79,30 +79,45 @@ namespace ArmorIntegrity
         public static bool TryGetDisplayedBatteredSeverity(Pawn pawn, out float severity)
         {
             severity = 0f;
-            if (pawn == null)
+            if (pawn == null || pawn.Dead)
                 return false;
 
-            // Same simple ordering used by RimWorld/Armored Up: worn apparel is
-            // inspected from the last entry back toward the first. For the single
-            // UI bar we show the outermost damaged surviving armor item.
+            ArmorWearTracker tracker = ArmorWearTracker.Instance;
+            if (tracker == null)
+                return false;
+
+            BodyPartRecord lastPart;
+            if (!tracker.TryGetLastHitPart(pawn, out lastPart))
+                return false;
+
+            // The bar follows the same hit path as the armor calculation.
+            // Only the current outermost surviving armor on the last hit body part
+            // is eligible. If that layer is intact, no bar is shown even when an
+            // inner layer is damaged.
             if (pawn.apparel != null)
             {
                 List<Apparel> worn = pawn.apparel.WornApparel;
                 for (int i = worn.Count - 1; i >= 0; i--)
                 {
                     Apparel apparel = worn[i];
-                    if (!IsArmorApparel(apparel))
+                    if (apparel == null ||
+                        apparel.Destroyed ||
+                        apparel.def.apparel == null ||
+                        !apparel.def.apparel.CoversBodyPart(lastPart) ||
+                        !IsArmorApparel(apparel))
                         continue;
 
                     float battered = GetApparelBatteredSeverity(apparel);
                     if (battered <= Epsilon)
-                        continue;
+                        return false;
 
                     severity = battered;
                     return true;
                 }
             }
 
+            // Only when there is no surviving wearable armor on that hit path do
+            // we expose the intrinsic armor state.
             severity = GetIntrinsicBatteredSeverity(pawn);
             return severity > Epsilon;
         }
@@ -112,11 +127,16 @@ namespace ArmorIntegrity
             if (pawn == null || pawn.health == null)
                 return;
 
+            Hediff display = pawn.health.hediffSet.GetFirstHediffOfDef(ArmorIntegrityDefOf.AI_BatteredArmor);
+
             float severity;
             if (!TryGetDisplayedBatteredSeverity(pawn, out severity) || severity <= Epsilon)
+            {
+                if (display != null)
+                    pawn.health.RemoveHediff(display);
                 return;
+            }
 
-            Hediff display = pawn.health.hediffSet.GetFirstHediffOfDef(ArmorIntegrityDefOf.AI_BatteredArmor);
             if (display == null)
             {
                 display = HediffMaker.MakeHediff(ArmorIntegrityDefOf.AI_BatteredArmor, pawn);
@@ -180,6 +200,15 @@ namespace ArmorIntegrity
 
             return Mathf.Clamp01(
                 Mathf.Max(0f, availableWearPercentage) / requestedWearPercentage);
+        }
+
+        public static float GetPassthroughDamageFactor()
+        {
+            float factor = ArmorIntegrityMod.Settings != null
+                ? ArmorIntegrityMod.Settings.passthroughDamageFactor
+                : 0.75f;
+
+            return Mathf.Clamp(factor, 0.25f, 1f);
         }
 
         public static float ApplyApparelWear(
